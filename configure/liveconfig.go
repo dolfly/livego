@@ -40,27 +40,29 @@ type JWT struct {
 	Algorithm string `mapstructure:"algorithm"`
 }
 type ServerCfg struct {
-	Level           string       `mapstructure:"level"`
-	ConfigFile      string       `mapstructure:"config_file"`
-	FLVArchive      bool         `mapstructure:"flv_archive"`
-	FLVDir          string       `mapstructure:"flv_dir"`
-	RTMPNoAuth      bool         `mapstructure:"rtmp_noauth"`
-	RTMPAddr        string       `mapstructure:"rtmp_addr"`
-	HTTPFLVAddr     string       `mapstructure:"httpflv_addr"`
-	HLSAddr         string       `mapstructure:"hls_addr"`
-	HLSKeepAfterEnd bool         `mapstructure:"hls_keep_after_end"`
-	APIAddr         string       `mapstructure:"api_addr"`
-	RedisAddr       string       `mapstructure:"redis_addr"`
-	RedisPwd        string       `mapstructure:"redis_pwd"`
-	ReadTimeout     int          `mapstructure:"read_timeout"`
-	WriteTimeout    int          `mapstructure:"write_timeout"`
-	GopNum          int          `mapstructure:"gop_num"`
-	JWT             JWT          `mapstructure:"jwt"`
-	Server          Applications `mapstructure:"server"`
+	DashBoard       bool          `mapstructure:"dashboard"`
+	Level           string        `mapstructure:"level"`
+	ConfigFile      string        `mapstructure:"config_file"`
+	FLVDir          string        `mapstructure:"flv_dir"`
+	FLVArchive      bool          `mapstructure:"flv_archive"`
+	RTMPAddr        string        `mapstructure:"rtmp_addr"`
+	RTMPNoAuth      bool          `mapstructure:"rtmp_noauth"`
+	HTTPFLVAddr     string        `mapstructure:"httpflv_addr"`
+	HLSAddr         string        `mapstructure:"hls_addr"`
+	HLSKeepAfterEnd bool          `mapstructure:"hls_keep_after_end"`
+	APIAddr         string        `mapstructure:"api_addr"`
+	RedisAddr       string        `mapstructure:"redis_addr"`
+	RedisPwd        string        `mapstructure:"redis_pwd"`
+	ReadTimeout     int           `mapstructure:"read_timeout"`
+	WriteTimeout    int           `mapstructure:"write_timeout"`
+	GopNum          int           `mapstructure:"gop_num"`
+	JWT             JWT           `mapstructure:"jwt"`
+	Server          []Application `mapstructure:"server"`
 }
 
 // default config
 var defaultConf = ServerCfg{
+	DashBoard:       true,
 	ConfigFile:      "livego.yaml",
 	FLVArchive:      false,
 	RTMPNoAuth:      false,
@@ -127,6 +129,7 @@ func initDefault() {
 	pflag.Int("read_timeout", 10, "read time out")
 	pflag.Int("write_timeout", 10, "write time out")
 	pflag.Int("gop_num", 1, "gop num")
+	pflag.Bool("dashboard", false, "Enable dashboard on http://{api_addr}/dashboard")
 	pflag.Parse()
 	Config.BindPFlags(pflag.CommandLine)
 

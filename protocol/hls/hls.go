@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/gwuhaolin/livego/configure"
 
 	"github.com/gwuhaolin/livego/av"
@@ -55,6 +56,12 @@ func (server *Server) Serve(listener net.Listener) error {
 	server.listener = listener
 	http.Serve(listener, mux)
 	return nil
+}
+
+func (server *Server) Append(r *mux.Router) {
+	r.PathPrefix("/livego/hls").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server.handle(w, r)
+	})
 }
 
 func (server *Server) GetWriter(info av.Info) av.WriteCloser {

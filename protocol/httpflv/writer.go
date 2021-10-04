@@ -167,6 +167,8 @@ func (flvWriter *FLVWriter) Wait() {
 	select {
 	case <-flvWriter.closedChan:
 		return
+	default:
+		time.Sleep(time.Duration(1) * time.Second)
 	}
 }
 

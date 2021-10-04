@@ -8,11 +8,14 @@ import (
 
 	"github.com/gwuhaolin/livego/av"
 	"github.com/gwuhaolin/livego/configure"
+	"github.com/gwuhaolin/livego/protocol/dashboard"
 	"github.com/gwuhaolin/livego/protocol/rtmp"
 	"github.com/gwuhaolin/livego/protocol/rtmp/rtmprelay"
 
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/mux"
+	"github.com/markbates/pkger"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -25,6 +28,7 @@ type Response struct {
 func (r *Response) SendJson() (int, error) {
 	resp, _ := json.Marshal(r)
 	r.w.Header().Set("Content-Type", "application/json")
+	r.w.Header().Set("Access-Control-Allow-Origin", "*")
 	r.w.WriteHeader(r.Status)
 	return r.w.Write(resp)
 }
@@ -70,20 +74,29 @@ func JWTMiddleware(next http.Handler) http.Handler {
 
 	log.Info("Using JWT middleware")
 
+	secret := []byte(configure.Config.GetString("jwt.secret"))
+	var algorithm jwt.SigningMethod
+
+	if len(configure.Config.GetString("jwt.algorithm")) > 0 {
+		algorithm = jwt.GetSigningMethod(configure.Config.GetString("jwt.algorithm"))
+	}
+
+	if algorithm == nil {
+		algorithm = jwt.SigningMethodHS256
+	}
+
+	// Create the Claims
+	token := jwt.NewWithClaims(algorithm, &jwt.StandardClaims{})
+	ss, _ := token.SignedString(secret)
+
+	// Token to enter to dashboard
+	log.Infof("valid token: %v", ss)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var algorithm jwt.SigningMethod
-		if len(configure.Config.GetString("jwt.algorithm")) > 0 {
-			algorithm = jwt.GetSigningMethod(configure.Config.GetString("jwt.algorithm"))
-		}
-
-		if algorithm == nil {
-			algorithm = jwt.SigningMethodHS256
-		}
-
 		jwtMiddleware := jwtmiddleware.New(jwtmiddleware.Options{
 			Extractor: jwtmiddleware.FromFirst(jwtmiddleware.FromAuthHeader, jwtmiddleware.FromParameter("jwt")),
 			ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
-				return []byte(configure.Config.GetString("jwt.secret")), nil
+				return secret, nil
 			},
 			SigningMethod: algorithm,
 			ErrorHandler: func(w http.ResponseWriter, r *http.Request, err string) {
@@ -101,29 +114,38 @@ func JWTMiddleware(next http.Handler) http.Handler {
 }
 
 func (s *Server) Serve(l net.Listener) error {
-	mux := http.NewServeMux()
+	router := mux.NewRouter()
 
-	mux.Handle("/statics/", http.StripPrefix("/statics/", http.FileServer(http.Dir("statics"))))
+	if configure.Config.GetBool("dashboard") {
+		log.Printf("DASHBOARD On /dashboard")
 
-	mux.HandleFunc("/control/push", func(w http.ResponseWriter, r *http.Request) {
+		dir := pkger.Dir("/static")
+		dashboard.DashboardHandler{Assets: &dir}.Append(router)
+	} else {
+		log.Printf("DASHBOARD Off")
+	}
+
+	// router.Handle("/statics/", http.StripPrefix("/statics/", http.FileServer(http.Dir("statics"))))
+
+	router.HandleFunc("/control/push", func(w http.ResponseWriter, r *http.Request) {
 		s.handlePush(w, r)
 	})
-	mux.HandleFunc("/control/pull", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/control/pull", func(w http.ResponseWriter, r *http.Request) {
 		s.handlePull(w, r)
 	})
-	mux.HandleFunc("/control/get", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/control/get", func(w http.ResponseWriter, r *http.Request) {
 		s.handleGet(w, r)
 	})
-	mux.HandleFunc("/control/reset", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/control/reset", func(w http.ResponseWriter, r *http.Request) {
 		s.handleReset(w, r)
 	})
-	mux.HandleFunc("/control/delete", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/control/delete", func(w http.ResponseWriter, r *http.Request) {
 		s.handleDelete(w, r)
 	})
-	mux.HandleFunc("/stat/livestat", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/stat/livestat", func(w http.ResponseWriter, r *http.Request) {
 		s.GetLiveStatics(w, r)
 	})
-	http.Serve(l, JWTMiddleware(mux))
+	http.Serve(l, JWTMiddleware(router))
 	return nil
 }
 
@@ -202,7 +224,7 @@ func (server *Server) GetLiveStatics(w http.ResponseWriter, req *http.Request) {
 			return true
 		})
 	} else {
-        // Warning: The room should be in the "live/stream" format!
+		// Warning: The room should be in the "live/stream" format!
 		roomInfo, exists := (rtmpStream.GetStreams()).Load(room)
 		if exists == false {
 			res.Status = 404
@@ -238,7 +260,6 @@ func (server *Server) GetLiveStatics(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	//resp, _ := json.Marshal(msgs)
 	res.Data = msgs
 }
 

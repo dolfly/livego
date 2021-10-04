@@ -2,7 +2,12 @@
 .idea
 dist
 .vscode
-tmp
-vendor
+tmp/
+vendor/
+node_modules/
+build/
 livego
 livego.exe
+static/
+webui/.tmp/
+pkged.go

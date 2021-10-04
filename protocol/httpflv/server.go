@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/gwuhaolin/livego/av"
 	"github.com/gwuhaolin/livego/protocol/rtmp"
 
@@ -44,6 +45,15 @@ func (server *Server) Serve(l net.Listener) error {
 		return err
 	}
 	return nil
+}
+
+func (server *Server) Append(r *mux.Router) {
+	r.PathPrefix("/livego/flv").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server.handleConn(w, r)
+	})
+	r.Path("/livego/flv/stream").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server.getStream(w, r)
+	})
 }
 
 // 获取发布和播放器的信息
@@ -127,7 +137,7 @@ func (server *Server) handleConn(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 		}
-		if include == false {
+		if !include {
 			http.Error(w, "invalid path", http.StatusNotFound)
 			return
 		}
