@@ -11,11 +11,11 @@ import (
 	"github.com/gwuhaolin/livego/protocol/dashboard"
 	"github.com/gwuhaolin/livego/protocol/rtmp"
 	"github.com/gwuhaolin/livego/protocol/rtmp/rtmprelay"
+	"github.com/gwuhaolin/livego/webui"
 
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
-	"github.com/markbates/pkger"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -118,9 +118,7 @@ func (s *Server) Serve(l net.Listener) error {
 
 	if configure.Config.GetBool("dashboard") {
 		log.Printf("DASHBOARD On /dashboard")
-
-		dir := pkger.Dir("/static")
-		dashboard.DashboardHandler{Assets: &dir}.Append(router)
+		dashboard.DashboardHandler{Assets: webui.Assets()}.Append(router)
 	} else {
 		log.Printf("DASHBOARD Off")
 	}

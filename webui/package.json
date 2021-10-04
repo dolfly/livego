@@ -38,11 +38,13 @@
     "react-chartjs-2": "^2.7.6",
     "react-dom": "^16.8.6",
     "react-router-dom": "^5.0.1",
-    "react-scripts": "^1.1.5",
+    "react-scripts": "^4.0.3",
     "validate.js": "^0.13.1"
   },
   "devDependencies": {
+    "babel-eslint": "^10.1.0",
     "eslint": "^6.6.0",
+    "eslint-config-react-app": "^6.0.0",
     "eslint-plugin-prettier": "^3.0.1",
     "eslint-plugin-react": "^7.12.4",
     "prettier": "^1.17.1",
